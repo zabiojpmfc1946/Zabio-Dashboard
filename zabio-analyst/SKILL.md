@@ -31,6 +31,7 @@ git add dashboard.html .tmp/metrics.json
 git commit -m "Weekly data update: $(date +'%Y-%m-%d')"
 git push origin main
 ```
+**Repository**: [https://github.com/zabiojpmfc1946/Zabio-Dashboard](https://github.com/zabiojpmfc1946/Zabio-Dashboard)
 
 ## Bundled Resources
 
