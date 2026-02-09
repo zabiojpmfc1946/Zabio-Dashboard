@@ -96,12 +96,30 @@ def process_data(input_path):
     daily_vol = defaultdict(float)
     daily_client_vol = defaultdict(lambda: defaultdict(float))
 
+    # Delta Calculation Windows
+    curr_window_start = end_dt - timedelta(days=30)
+    prev_window_start = end_dt - timedelta(days=60)
+    prev_window_end = curr_window_start
+
+    # Metrics Buckets
+    m_curr = {"vol": 0.0, "tx": 0}
+    m_prev = {"vol": 0.0, "tx": 0}
+
     for row, dt in data_points:
         from_addr = row[3].lower()
         to_addr = row[5].lower()
         symbol = row[9].strip()
         val = clean_value(row[6])
         
+        # Delta Metrics Accumulation
+        if any(s in symbol for s in [s for s in STABLECOIN_SYMBOLS]):
+            if curr_window_start < dt <= end_dt:
+                m_curr["vol"] += val
+                m_curr["tx"] += 1
+            elif prev_window_start < dt <= prev_window_end:
+                m_prev["vol"] += val
+                m_prev["tx"] += 1
+
         client_addr = from_addr if to_addr == ZABIO_ADDRESS else to_addr
         name = WALLET_TO_COMPANY.get(client_addr)
         if not name or name == "Zabio": continue
@@ -121,6 +139,31 @@ def process_data(input_path):
             daily_client_vol[name][day_str] += val
             if to_addr == ZABIO_ADDRESS: comp_metrics[name]["dep"] += val
             else: comp_metrics[name]["with"] += val
+
+    # Calculate Deltas for Entities
+    verified_now = 0
+    verified_prev = 0
+    active_now = 0
+    active_prev = 0
+
+    for name, m in comp_metrics.items():
+        if m["first_seen"] <= end_dt: verified_now += 1
+        if m["first_seen"] <= curr_window_start: verified_prev += 1
+        
+        if any(curr_window_start <= d <= end_dt for d in m["tx_dates"]): active_now += 1
+        if any(prev_window_start <= d <= prev_window_end for d in m["tx_dates"]): active_prev += 1
+
+    def calc_delta(curr, prev):
+        if prev == 0: return 100.0 if curr > 0 else 0.0
+        return ((curr - prev) / prev) * 100.0
+
+    delta_verified = calc_delta(verified_now, verified_prev)
+    delta_active = calc_delta(active_now, active_prev)
+    delta_vol = calc_delta(m_curr["vol"], m_prev["vol"])
+    
+    avg_tx_curr = m_curr["vol"] / m_curr["tx"] if m_curr["tx"] > 0 else 0
+    avg_tx_prev = m_prev["vol"] / m_prev["tx"] if m_prev["tx"] > 0 else 0
+    delta_avg_tx = calc_delta(avg_tx_curr, avg_tx_prev)
 
     sorted_comps = sorted(comp_metrics.items(), key=lambda x: x[1]["vol"], reverse=True)
     top_clients = [c[0] for c in sorted_comps[:5]]
@@ -198,10 +241,14 @@ def process_data(input_path):
     results = {
         "summary": {
             "onboarded_companies": len(comp_metrics),
-            "active_companies_30d": churn_trend[-1]["active"] if churn_trend else 0,
+            "verified_delta": round(delta_verified, 1),
+            "active_companies_30d": active_now,
+            "active_delta": round(delta_active, 1),
             "total_stablecoin_volume": round(total_volume, 2),
+            "volume_delta": round(delta_vol, 1),
             "total_transactions": total_tx_count,
             "global_avg_tx": round(total_volume / total_tx_count, 2) if total_tx_count > 0 else 0,
+            "avg_tx_delta": round(delta_avg_tx, 1),
             "range_start": start_dt.strftime('%d/%m/%Y'),
             "range_end": end_dt.strftime('%d/%m/%Y')
         },

@@ -13,6 +13,11 @@ def generate_dashboard():
 
     summary = data['summary']
     retention = data['retention_matrix']
+
+    def get_delta_html(val):
+        color = "#22c55e" if val >= 0 else "#ef4444"
+        arrow = "↑" if val >= 0 else "↓"
+        return f'<div style="color: {color}; font-size: 0.8rem; font-weight: 600; margin-top: 0.25rem;">{arrow} {abs(val)}% vs last month</div>'
     
     html_content = f"""<!DOCTYPE html>
 <html lang="en">
@@ -112,22 +117,27 @@ def generate_dashboard():
         <div class="stat-card">
             <div class="stat-label">Verified Entitites</div>
             <div class="stat-value">{summary['onboarded_companies']}</div>
+            {get_delta_html(summary.get('verified_delta', 0))}
         </div>
         <div class="stat-card">
             <div class="stat-label">Active (30d)</div>
             <div class="stat-value">{summary['active_companies_30d']}</div>
+            {get_delta_html(summary.get('active_delta', 0))}
         </div>
         <div class="stat-card">
             <div class="stat-label">Total Volume</div>
             <div class="stat-value">${summary['total_stablecoin_volume']:,.0f}</div>
+            {get_delta_html(summary.get('volume_delta', 0))}
         </div>
         <div class="stat-card">
             <div class="stat-label">Avg Transaction</div>
             <div class="stat-value">${summary['global_avg_tx']:,.0f}</div>
+            {get_delta_html(summary.get('avg_tx_delta', 0))}
         </div>
         <div class="stat-card">
             <div class="stat-label">Retention</div>
             <div class="stat-value">{round((summary['active_companies_30d'] / summary['onboarded_companies']) * 100, 1)}%</div>
+            <div style="color: var(--text-dim); font-size: 0.8rem; margin-top: 0.25rem;">Global Avg</div>
         </div>
     </div>
 
