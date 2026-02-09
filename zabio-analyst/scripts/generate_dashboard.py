@@ -2,7 +2,7 @@ import json
 import os
 
 METRICS_FILE = ".tmp/metrics.json"
-OUTPUT_HTML = "dashboard.html"
+OUTPUT_HTML = "index.html"
 
 def generate_dashboard():
     if not os.path.exists(METRICS_FILE):

@@ -19,7 +19,7 @@ python3 zabio-analyst/scripts/orchestrator.py <path_to_csv>
 ```
 
 ### 3. Quality Audit
-Verify the output in the terminal and check `dashboard.html`. Ensure:
+Verify the output in the terminal and check `index.html`. Ensure:
 - Total volumes match business expectations.
 - Client names are standardized (no "#N/A" or raw addresses).
 - Heatmap shows current month activity.
@@ -27,7 +27,7 @@ Verify the output in the terminal and check `dashboard.html`. Ensure:
 ### 4. Deploy & Sync
 Push the updated dashboard and metrics to the team repository to trigger the Vercel update:
 ```bash
-git add dashboard.html .tmp/metrics.json
+git add index.html .tmp/metrics.json
 git commit -m "Weekly data update: $(date +'%Y-%m-%d')"
 git push origin main
 ```

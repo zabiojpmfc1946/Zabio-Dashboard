@@ -35,7 +35,7 @@ def main():
     if not run_script(os.path.join(scripts_dir, "generate_dashboard.py")):
         sys.exit(1)
         
-    print("\n✅ Weekly Update Complete. Dashboard updated at dashboard.html")
+    print("\n✅ Weekly Update Complete. Dashboard updated at index.html")
 
 if __name__ == "__main__":
     main()
