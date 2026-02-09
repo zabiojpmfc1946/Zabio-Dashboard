@@ -2,6 +2,7 @@ import csv
 import json
 import os
 import sys
+import random
 from datetime import datetime, timedelta
 from collections import defaultdict
 
@@ -10,6 +11,11 @@ INPUT_FILE = "export-address-token-0x90eF96BCFB3e798C6565CBBA6a587F14b58003D3 (3
 OUTPUT_METRICS = ".tmp/metrics.json"
 ZABIO_ADDRESS = "0x90ef96bcfb3e798c6565cbba6a587f14b58003d3".lower()
 STABLECOIN_SYMBOLS = {'USDT', 'USDC', 'USDT0'}
+
+LOCATION_DATA = {
+    "Bogota": {"lat": 4.7110, "lon": -74.0721},
+    "Medellin": {"lat": 6.2442, "lon": -75.5812}
+}
 
 # USER PROVIDED MAPPING
 WALLET_TO_COMPANY = {
@@ -211,7 +217,8 @@ def process_data(input_path):
         "companies": [{
             "company": n, "volume": round(m["vol"], 2), "transactions": m["tx"],
             "deposits": round(m["dep"], 2), "withdrawals": round(m["with"], 2),
-            "is_active": any(activity_limit <= tx_dt <= end_dt for tx_dt in m["tx_dates"])
+            "is_active": any(activity_limit <= tx_dt <= end_dt for tx_dt in m["tx_dates"]),
+            "location": LOCATION_DATA[random.choice(["Bogota", "Medellin"])]
         } for n, m in sorted_comps]
     }
     

@@ -21,6 +21,8 @@ def generate_dashboard():
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Zabio Strategic Analytics Dashboard</title>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1/dist/chartjs-plugin-zoom.min.js"></script>
     <style>
@@ -58,6 +60,8 @@ def generate_dashboard():
         .chart-card {{ background: var(--card); border: 1px solid var(--border); padding: 1.5rem; border-radius: 1rem; position: relative; }}
         .chart-container {{ position: relative; height: 260px; width: 100%; }}
         .chart-card h2 {{ font-size: 0.85rem; margin-bottom: 1rem; color: var(--text-dim); font-weight: 600; text-transform: uppercase; letter-spacing: 0.02em; display: flex; justify-content: space-between; align-items: center; }}
+        
+        .map-container {{ height: 400px; width: 100%; border-radius: 0.5rem; z-index: 1; }}
 
         .full-width {{ grid-column: 1 / -1; }}
 
@@ -165,6 +169,11 @@ def generate_dashboard():
         </div>
 
         <div class="chart-card full-width">
+            <h2>Top Customer Locations</h2>
+            <div id="map" class="map-container"></div>
+        </div>
+
+        <div class="chart-card full-width">
             <h2>Monthly Cohort Retention (Active Matrix %)</h2>
             <div class="heatmap-container">
                 <table class="heatmap-table">
@@ -229,6 +238,47 @@ def generate_dashboard():
         const shareData = {json.dumps(data['share_data'])};
         const velocityData = {json.dumps(data['velocity_data'])};
         const churnData = {json.dumps(data['churn_trend'])};
+        const companyData = {json.dumps(data['companies'])};
+
+        // Map Initialization
+        function initMap() {{
+            const map = L.map('map').setView([5.0, -74.5], 6); // Centered on Colombia
+            
+            L.tileLayer('https://{{s}}.basemaps.cartocdn.com/dark_all/{{z}}/{{x}}/{{y}}{{r}}.png', {{
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+                subdomains: 'abcd',
+                maxZoom: 19
+            }}).addTo(map);
+
+            const cityCounts = {{}};
+            companyData.forEach(c => {{
+                if (!c.location) return;
+                const key = c.location.lat + ',' + c.location.lon;
+                if (!cityCounts[key]) cityCounts[key] = {{ ...c.location, count: 0, volume: 0, names: [] }};
+                cityCounts[key].count++;
+                cityCounts[key].volume += c.volume;
+                if (cityCounts[key].names.length < 5) cityCounts[key].names.push(c.company);
+            }});
+
+            Object.values(cityCounts).forEach(city => {{
+                const radius = Math.min(Math.max(city.count * 3, 10), 30);
+                const marker = L.circleMarker([city.lat, city.lon], {{
+                    radius: radius,
+                    fillColor: '#ec4899',
+                    color: '#fff',
+                    weight: 1,
+                    opacity: 1,
+                    fillOpacity: 0.6
+                }}).addTo(map);
+                
+                marker.bindTooltip(
+                    `<b>Companies: ${{city.count}}</b><br>Vol: $${{city.volume.toLocaleString()}}<br><br>Examples:<br>${{city.names.join('<br>')}}`,
+                    {{ direction: 'top', className: 'custom-tooltip' }}
+                );
+            }});
+        }}
+        
+        initMap();
 
         const chartColors = ['#818cf8', '#ec4899', '#f59e0b', '#22c55e', '#a855f7'];
         const charts = {{}};
